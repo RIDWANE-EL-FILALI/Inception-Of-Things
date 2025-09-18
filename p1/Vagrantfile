@@ -1,0 +1,24 @@
+Vagrant.configure("2") do |config|
+  # first machine is a server machine
+  config.vm.define "rel-filaS" do |server|
+    server.vm.box = "ubuntu/focal64"
+    server.vm.hostname = "rel-filaS"
+    server.vm.network "private_network", ip: "192.168.56.110"
+    server.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+    end
+  end
+
+  # Second machine is a worker achine
+  config.vm.define "rel-filaSW" do |worker|
+    worker.vm.box = "ubuntu/focal64"
+    worker.vm.hostname = "rel-filaSW"
+    worker.vm.network "private_network", ip: "192.168.56.111"
+    worker.vm.provider "virtualbox" do |vb|
+      vb.memory = 512
+      vb.cpus = 1
+    end
+  end
+
+end
