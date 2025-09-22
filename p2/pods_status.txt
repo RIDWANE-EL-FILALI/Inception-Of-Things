@@ -1,0 +1,4 @@
+NAME                          READY   STATUS    RESTARTS   AGE     IP          NODE        NOMINATED NODE   READINESS GATES
+flask-app1-75bc995bb7-fmthl   1/1     Running   0          2m32s   10.42.0.9   rel-filas   <none>           <none>
+flask-app2-67d5994b94-kk4vb   1/1     Running   0          2m32s   10.42.0.7   rel-filas   <none>           <none>
+flask-app3-6f4f459bf-vp2f9    1/1     Running   0          2m32s   10.42.0.4   rel-filas   <none>           <none>

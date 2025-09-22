@@ -1,22 +1,66 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flask-deployment
+  name: flask-app1
   labels:
-    app: flask
+    app: flask-app1
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: flask
+      app: flask-app1
   template:
     metadata:
       labels:
-        app: flask
+        app: flask-app1
     spec:
       containers:
-      - name: flask-container
-        image: broly20/flask-app:v2
+      - name: flask-container-app1
+        image: broly20/flask-app:v3
+        ports:
+        - containerPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app2
+  labels:
+    app: flask-app2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app2
+  template:
+    metadata:
+      labels:
+        app: flask-app2
+    spec:
+      containers:
+      - name: flask-container-app2
+        image: broly20/flask-app:v3
+        ports:
+        - containerPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app3
+  labels:
+    app: flask-app3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app3
+  template:
+    metadata:
+      labels:
+        app: flask-app3
+    spec:
+      containers:
+      - name: flask-container-app3
+        image: broly20/flask-app:v3
         ports:
         - containerPort: 5000
 
@@ -24,13 +68,41 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: flask-service
+  name: flask-service-app1
 spec:
   selector:
-    app: flask
+    app: flask-app1
   type: NodePort  # allows external access via node port
   ports:
     - protocol: TCP
       port: 80
       targetPort: 5000
       nodePort: 30080  # specify the node port for external access
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service-app2
+spec:
+  selector:
+    app: flask-app2
+  type: NodePort  # allows external access via node port
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+      nodePort: 30081  # specify the node port for external access
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service-app3
+spec:
+  selector:
+    app: flask-app3
+  type: NodePort  # allows external access via node port
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+      nodePort: 30082  # specify the node port for external access
