@@ -72,12 +72,11 @@ metadata:
 spec:
   selector:
     app: flask-app1
-  type: NodePort  # allows external access via node port
+  type: ClusterIP
   ports:
     - protocol: TCP
       port: 80
       targetPort: 5000
-      nodePort: 30080  # specify the node port for external access
 ---
 apiVersion: v1
 kind: Service
@@ -86,12 +85,11 @@ metadata:
 spec:
   selector:
     app: flask-app2
-  type: NodePort  # allows external access via node port
+  type: ClusterIP
   ports:
     - protocol: TCP
       port: 80
       targetPort: 5000
-      nodePort: 30081  # specify the node port for external access
 ---
 apiVersion: v1
 kind: Service
@@ -100,9 +98,8 @@ metadata:
 spec:
   selector:
     app: flask-app3
-  type: NodePort  # allows external access via node port
+  type: ClusterIP
   ports:
     - protocol: TCP
       port: 80
       targetPort: 5000
-      nodePort: 30082  # specify the node port for external access
