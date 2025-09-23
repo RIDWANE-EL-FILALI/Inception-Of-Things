@@ -1,0 +1,6 @@
+NAME                 STATUS   ROLES                  AGE   VERSION
+k3d-popo1-agent-0    Ready    <none>                 10s   v1.31.5+k3s1
+k3d-popo1-agent-1    Ready    <none>                 9s    v1.31.5+k3s1
+k3d-popo1-agent-2    Ready    <none>                 9s    v1.31.5+k3s1
+k3d-popo1-agent-3    Ready    <none>                 9s    v1.31.5+k3s1
+k3d-popo1-server-0   Ready    control-plane,master   17s   v1.31.5+k3s1
