@@ -1,4 +1,4 @@
-# Inception of Things (Part 1)
+# Inception of Things
 ![banner inception of things](./../images/Inception-Of-Things.png)
 
 ## Description
@@ -279,10 +279,10 @@ This setup allows us to access different applications by visiting the same serve
 
 ```mermaid
 flowchart TD
-    Client[Client Browser<br>192.168.56.1]
-    Ingress[Ingress Controller<br>192.168.56.110]
+    Client[Client Browser<br>Any IP]
+    MasterNode["rel-filaS - K3s Server<br>192.168.56.110"]
 
-    subgraph K3s["rel-filaS - K3s Server"]
+    subgraph K3sApps["K3s Cluster Applications"]
         subgraph App1[App1]
             A1[flask-app1 Pod]
         end
@@ -298,16 +298,12 @@ flowchart TD
         end
     end
 
-    %% Routing rules
-    Client -->|app1.com| Ingress
-    Ingress --> A1
-
-    Client -->|app2.com| Ingress
-    Ingress --> A2
-    Ingress --> A3
-    Ingress --> A4
-
-    Client -->|any other host| Ingress
-    Ingress --> A5
-
+    %% Connections
+    Client -->|"HTTP request (Host: app1.com/app2.com/app3.com)"| MasterNode
+    MasterNode -->|"Ingress Controller (Traefik)"| A1
+    MasterNode -->|"Ingress Controller (Traefik)"| A2
+    MasterNode -->|"Ingress Controller (Traefik)"| A3
+    MasterNode -->|"Ingress Controller (Traefik)"| A4
+    MasterNode -->|"Ingress Controller (Traefik)"| A5
 ```
+

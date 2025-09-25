@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: t2o-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/RIDWANE-EL-FILALI/Inception-Of-Things'
+    targetRevision: HEAD
+    path: 'p3'
+    directory:
+      recurse: false
+      include: '{deployment.yaml,namespaces.yaml}'  # Only include specific config files
+      exclude: '{argocd-app.yaml,argocd-nodeport.yaml,*.sh}'  # Exclude ArgoCD files and scripts
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
