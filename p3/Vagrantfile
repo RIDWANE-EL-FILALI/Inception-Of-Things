@@ -5,7 +5,7 @@
         server.vm.box = "ubuntu/focal64"
         server.vm.hostname = "rel-filaS"
         server.vm.network "private_network", ip: "192.168.56.110"
-        # server.hostsupdater.aliases = ["app1.com", "app2.com", "app3.com"]
+        server.hostsupdater.aliases = ["app1.com", "app2.com", "app3.com"]
         server.vm.provider "virtualbox" do |vb|
         vb.name = "rel-filaS"
         vb.memory = 2048
