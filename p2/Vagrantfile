@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
     server.vm.provision "shell", inline: <<-SHELL
       while ! sudo kubectl get nodes; do sleep 2; done
       sudo kubectl apply -f /vagrant/flask-deployment.yaml
-      while [ $(sudo kubectl get pods --no-headers 2>/dev/null | grep -E "(flask-app1|flask-app2|flask-app3)" | grep -c "Running") -lt 3 ]; do 
+      while [ $(sudo kubectl get pods --no-headers 2>/dev/null | grep -E "(flask-app1|flask-app2|flask-app3)" | grep -c "Running") -lt 5 ]; do 
         sleep 5
       done
       sudo kubectl apply -f /vagrant/flask-ingress.yaml
@@ -26,7 +26,13 @@ Vagrant.configure("2") do |config|
       sudo kubectl get pods -o wide > /vagrant/pods_status.txt
       sudo kubectl get svc > /vagrant/services_status.txt
       sudo kubectl get ingress > /vagrant/ingress_status.txt
-      sudo kubectl get deployment flask-deployment -o yaml > cluster_stat.yaml
+      sudo rm -f /vagrant/cluster_stat.yaml
+      echo "----------------------- FLASK-APP1 DEPLOYMENT -----------------------" > /vagrant/cluster_stat.yaml
+      sudo kubectl get deployment flask-app1 -o yaml >> /vagrant/cluster_stat.yaml
+      echo "----------------------- FLASK-APP2 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
+      sudo kubectl get deployment flask-app2 -o yaml >> /vagrant/cluster_stat.yaml
+      echo "----------------------- FLASK-APP3 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
+      sudo kubectl get deployment flask-app3 -o yaml >> /vagrant/cluster_stat.yaml
     SHELL
   end
 end
