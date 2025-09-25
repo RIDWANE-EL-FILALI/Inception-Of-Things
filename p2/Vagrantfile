@@ -24,8 +24,9 @@ Vagrant.configure("2") do |config|
       sudo kubectl apply -f /vagrant/flask-ingress.yaml
       sleep 10
       sudo kubectl get pods -o wide > /vagrant/pods_status.txt
-      sudo kubectl get ingress > /vagrant/ingress_status.txt
       sudo kubectl get svc > /vagrant/services_status.txt
+      sudo kubectl get ingress > /vagrant/ingress_status.txt
+      sudo kubectl get deployment flask-deployment -o yaml > cluster_stat.yaml
     SHELL
   end
 end

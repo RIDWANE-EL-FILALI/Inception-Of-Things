@@ -259,3 +259,55 @@ flowchart TD
     Master -->|K3s token| Worker
     Master -->|kubectl control| Worker
 ```
+## Part 2: K3s and three simple applications
+In this part, we set up one virtual machine running K3s in server mode.
+On this machine, we deploy three web applications using Kubernetes **Deployments, Services, and Ingress.**
+
+* Each application is a simple Flask web app.
+
+* Application 2 runs with 3 replicas for load balancing.
+
+* An Ingress is configured to route traffic based on the HOST header:
+
+  * `app1.com` → Application 1
+
+  * `app2.com` → Application 2 (3 replicas)
+
+  * `app3.com` → Application 3
+
+This setup allows us to access different applications by visiting the same server IP (`192.168.56.110`) but using different hostnames.
+
+```mermaid
+flowchart TD
+    Client[Client Browser<br>192.168.56.1]
+    Ingress[Ingress Controller<br>192.168.56.110]
+
+    subgraph K3s["rel-filaS - K3s Server"]
+        subgraph App1[App1]
+            A1[flask-app1 Pod]
+        end
+
+        subgraph App2["App2 (3 Replicas)"]
+            A2[flask-app2 Pod 1]
+            A3[flask-app2 Pod 2]
+            A4[flask-app2 Pod 3]
+        end
+
+        subgraph App3[App3]
+            A5[flask-app3 Pod]
+        end
+    end
+
+    %% Routing rules
+    Client -->|app1.com| Ingress
+    Ingress --> A1
+
+    Client -->|app2.com| Ingress
+    Ingress --> A2
+    Ingress --> A3
+    Ingress --> A4
+
+    Client -->|any other host| Ingress
+    Ingress --> A5
+
+```
