@@ -36,3 +36,12 @@ spec:
                 name: flask-service-app3
                 port:
                   number: 80
+    - http:  # Default rule (no host specified) - serves app3
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flask-service-app3
+                port:
+                  number: 80
