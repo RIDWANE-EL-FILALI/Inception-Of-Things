@@ -6,14 +6,14 @@ metadata:
     deployment.kubernetes.io/revision: "1"
     kubectl.kubernetes.io/last-applied-configuration: |
       {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"flask-app1"},"name":"flask-app1","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"flask-app1"}},"template":{"metadata":{"labels":{"app":"flask-app1"}},"spec":{"containers":[{"image":"broly20/flask-app:v3","name":"flask-container-app1","ports":[{"containerPort":5000}]}]}}}}
-  creationTimestamp: "2025-10-01T18:14:55Z"
+  creationTimestamp: "2025-10-02T19:27:00Z"
   generation: 1
   labels:
     app: flask-app1
   name: flask-app1
   namespace: default
-  resourceVersion: "720"
-  uid: 706bdc08-9770-4ecd-9553-4805fca3dbbd
+  resourceVersion: "665"
+  uid: 46fc5ddf-3471-423d-9ad2-82ec8022e745
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -50,14 +50,14 @@ spec:
 status:
   availableReplicas: 1
   conditions:
-  - lastTransitionTime: "2025-10-01T18:15:24Z"
-    lastUpdateTime: "2025-10-01T18:15:24Z"
+  - lastTransitionTime: "2025-10-02T19:32:04Z"
+    lastUpdateTime: "2025-10-02T19:32:04Z"
     message: Deployment has minimum availability.
     reason: MinimumReplicasAvailable
     status: "True"
     type: Available
-  - lastTransitionTime: "2025-10-01T18:15:00Z"
-    lastUpdateTime: "2025-10-01T18:15:24Z"
+  - lastTransitionTime: "2025-10-02T19:27:05Z"
+    lastUpdateTime: "2025-10-02T19:32:04Z"
     message: ReplicaSet "flask-app1-65db6d5b86" has successfully progressed.
     reason: NewReplicaSetAvailable
     status: "True"
@@ -74,14 +74,14 @@ metadata:
     deployment.kubernetes.io/revision: "1"
     kubectl.kubernetes.io/last-applied-configuration: |
       {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"flask-app2"},"name":"flask-app2","namespace":"default"},"spec":{"replicas":3,"selector":{"matchLabels":{"app":"flask-app2"}},"template":{"metadata":{"labels":{"app":"flask-app2"}},"spec":{"containers":[{"image":"broly20/flask-app:v3","name":"flask-container-app2","ports":[{"containerPort":5000}]}]}}}}
-  creationTimestamp: "2025-10-01T18:14:55Z"
+  creationTimestamp: "2025-10-02T19:27:00Z"
   generation: 1
   labels:
     app: flask-app2
   name: flask-app2
   namespace: default
-  resourceVersion: "742"
-  uid: bbd001ca-d1bb-4d29-97e0-77cc01b19a1d
+  resourceVersion: "690"
+  uid: 6a8fa55d-3455-4661-80c8-966628b0cffa
 spec:
   progressDeadlineSeconds: 600
   replicas: 3
@@ -118,14 +118,14 @@ spec:
 status:
   availableReplicas: 3
   conditions:
-  - lastTransitionTime: "2025-10-01T18:15:24Z"
-    lastUpdateTime: "2025-10-01T18:15:24Z"
+  - lastTransitionTime: "2025-10-02T19:32:05Z"
+    lastUpdateTime: "2025-10-02T19:32:05Z"
     message: Deployment has minimum availability.
     reason: MinimumReplicasAvailable
     status: "True"
     type: Available
-  - lastTransitionTime: "2025-10-01T18:15:00Z"
-    lastUpdateTime: "2025-10-01T18:15:24Z"
+  - lastTransitionTime: "2025-10-02T19:27:05Z"
+    lastUpdateTime: "2025-10-02T19:32:05Z"
     message: ReplicaSet "flask-app2-6686c4f784" has successfully progressed.
     reason: NewReplicaSetAvailable
     status: "True"
@@ -142,14 +142,14 @@ metadata:
     deployment.kubernetes.io/revision: "1"
     kubectl.kubernetes.io/last-applied-configuration: |
       {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"flask-app3"},"name":"flask-app3","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"flask-app3"}},"template":{"metadata":{"labels":{"app":"flask-app3"}},"spec":{"containers":[{"image":"broly20/flask-app:v3","name":"flask-container-app3","ports":[{"containerPort":5000}]}]}}}}
-  creationTimestamp: "2025-10-01T18:14:55Z"
+  creationTimestamp: "2025-10-02T19:27:00Z"
   generation: 1
   labels:
     app: flask-app3
   name: flask-app3
   namespace: default
-  resourceVersion: "728"
-  uid: 70c1dab4-8d1c-43e7-8a29-b19ecebd8fce
+  resourceVersion: "685"
+  uid: e17e03df-d425-4702-80b4-013fb93af487
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -186,14 +186,14 @@ spec:
 status:
   availableReplicas: 1
   conditions:
-  - lastTransitionTime: "2025-10-01T18:15:24Z"
-    lastUpdateTime: "2025-10-01T18:15:24Z"
+  - lastTransitionTime: "2025-10-02T19:32:05Z"
+    lastUpdateTime: "2025-10-02T19:32:05Z"
     message: Deployment has minimum availability.
     reason: MinimumReplicasAvailable
     status: "True"
     type: Available
-  - lastTransitionTime: "2025-10-01T18:15:00Z"
-    lastUpdateTime: "2025-10-01T18:15:24Z"
+  - lastTransitionTime: "2025-10-02T19:27:05Z"
+    lastUpdateTime: "2025-10-02T19:32:05Z"
     message: ReplicaSet "flask-app3-7764f5467d" has successfully progressed.
     reason: NewReplicaSetAvailable
     status: "True"

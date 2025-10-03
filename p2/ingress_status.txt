@@ -1,2 +1,0 @@
-NAME            CLASS    HOSTS                                    ADDRESS   PORTS   AGE
-flask-ingress   <none>   app1.com,app2.com,app3.com + 1 more...             80      11s

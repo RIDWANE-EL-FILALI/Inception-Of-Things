@@ -106,6 +106,219 @@ Objects are persistent entities in Kubernetes. They describe the desired state.
 
 8. **Ingress** → Exposes HTTP/HTTPS routes to services from outside.
 
+
+### Kubernetes services
+what is exactly a service in kubernetes and why do we need it ??
+
+in a kubernetes cluster, every pod gets its own internal IP address. but here’s the problem: pods are ephemeral — they get destroyed and recreated often (for example, during scaling, upgrades, or failures). every time a pod restarts, it usually gets a new IP address. this makes it nearly impossible to track and connect to a specific pod reliably.
+
+that’s why we need a Service. a service in kubernetes gives you a stable, permanent IP and DNS name that stays the same, no matter if the underlying pods come and go. clients never connect to pods directly — they connect to the service, and the service forwards traffic to the right pods.
+
+bonus: a service also does basic load balancing by default, distributing traffic across all the pods it selects.
+---
+there are several types of services in kubernetes. pods are connected to a service through its selector attribute in the service’s manifest file. this selector matches the labels on the pods.
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:               # this matches pods with label app=my-app
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080    # forwards traffic to container port 8080
+  type: ClusterIP
+```
+if a pod has:
+```yaml
+metadata:
+  labels:
+    app: my-app
+```
+then it will automatically be picked up by my-service
+
+---
+#### ClusterIP: 
+this is the default type of service. it exposes the service inside the cluster only. other pods can reach it, but it won’t be available from outside the cluster.
+`type: ClusterIP`
+you use this for typical backend services (e.g., your frontend app talks to your backend service).
+
+#### Headless Service:
+sometimes, clients actually need to talk directly to individual pods, instead of going through the load balancer. this usually happens in stateful applications like databases.
+
+example scenario: imagine you have a database cluster with one master node and multiple worker nodes. when a new worker pod starts, it has to connect directly to the master pod to clone its state. here you need pod-to-pod discovery.
+
+how do you get pod IPs?
+
+1. one option: query the kubernetes API directly and fetch all pods. but this makes your app too dependent on kubernetes internals.
+
+2. better option: use DNS. by default, a DNS lookup for a service returns the service ClusterIP. but if you set clusterIP: None (making it headless), then a DNS lookup returns all the pod IPs that match the service selector.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+spec:
+  clusterIP: None   # makes it headless
+  selector:
+    app: my-db
+  ports:
+    - port: 5432
+```
+if you run a DNS query for db-service.default.svc.cluster.local, you’ll get back all the pod IPs for the database. now each worker node can find and connect directly to the master.
+
+#### NodePort:
+a NodePort service exposes your application on each node’s IP address at a static port.
+that means if you have a cluster with 3 nodes, your service will be accessible from:
+```ruby
+<Node1IP>:<NodePort>
+<Node2IP>:<NodePort>
+<Node3IP>:<NodePort>
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30007   # the static port opened on each node
+```
+this way, even without ingress or a cloud load balancer, you can hit the service directly on that port from outside the cluster.
+
+#### LoadBalancer:
+this is commonly used when running in a cloud environment (like AWS, GCP, Azure, DigitalOcean, etc.). when you create a service of type LoadBalancer, kubernetes talks to the cloud provider’s APIs and provisions a real external load balancer for you.
+
+the external load balancer gets a public IP address, and all incoming requests to that IP are automatically forwarded to the service, and from there to the pods.
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+```
+in AWS this might spin up an ELB, in GCP a forwarding rule, etc. — but from your perspective it’s just an external IP that routes traffic into your pods.
+
+<!-- what is exactly a service in kubernetes and why do we need it ??
+in kubernetes cluster each pod gets its own internal ip address but the pods in kubernetes are ephumerel which means they're destroyed frequently and when restarted they get a new ip which meakes it hard to track the exact pod
+
+with a service you have a stable ip address which stays even if the pod dies and you only contact the service. a service also provides a loadbalancer by default 
+
+there is several types of services in kubernetes 
+pods are identified to a service throught its selected attribute in the manifest file (explain this a bit more with an examples simple snippets )
+
+* **ClusterIP**: this is a default type of a service. 
+* **Headless**: what if the client wantto talk to a pod directly whitout a pod. this stat can happen when we are deploying statefull applications like db, mongodb ..., as an examples and explain the examples in a geneoin way simply in the case of two dbs one in master and worker nodes when new wokrer node starts it has to connect to the master and clone the db stat for this scenario to happen the client has to know each pod ip address there is two ways of doing that one it making a request to the api server and getting all the pods info and they're ips but this will make the application too tied to the k8s api and yo have to get all the pods info everytime. second option is dns lookup how tis work is when performing a dns lookup it only returns the ip address of a service and this will be the service clustesIP. but if you specify the clusterIP attribute to none when performing a dns lookup it will return all the pod ip that are related to that specfic service give an examples snippet 
+* **NodePort**:  createsa  service that is accessible one each pod in the cluster as an example other services do no allow access to pods except through the service itself but in nodeport it opens a port directly to the pod explain in better way  so this way the request comes directly throught the prot with no ingres 
+* **LoadBalancer**: how it works is the service becomes available externaly through a cloudprovided loadbalancer functionality (explain in a bit more details)  -->
+
+### Ingress
+<!-- Ingress is a Kubernetes API object that exposes HTTP and HTTPS routes from outside the cluster to services running inside. It provides a single entry point for managing external access, simplifying application management and routing.
+
+in ingress configutayion you have routing rules which defines per example all the requests sent to a specific host should be routed to a specific service (add a more detailed explaination also explain each attribute in its configuration definition) -->
+
+an Ingress is a kubernetes api object that manages external access to services inside your cluster, usually over http and https.
+
+instead of exposing every service individually with NodePort or LoadBalancer, ingress gives you a single entry point into the cluster. from there you can define routing rules (e.g., “all traffic for api.example.com goes to service A, and all traffic for web.example.com goes to service B”).
+
+this makes ingress extremely powerful for microservices, where you might have dozens of services but want to expose them all under one domain with clean paths or subdomains.
+
+---
+**how ingress works**
+
+1. you define an Ingress resource (a yaml manifest with rules, hosts, paths, etc.).
+
+2. the ingress resource doesn’t do anything by itself — you need an Ingress Controller (like Nginx, Traefik, HAProxy, or cloud-specific ones).
+
+3. the ingress controller watches for ingress objects and configures the load balancer / proxy to follow the rules you defined.
+
+---
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: web.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service
+            port:
+              number: 80
+  - host: api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-service
+            port:
+              number: 80
+```
+
+**attributes explained**
+
+* **apiVersion**: for ingress objects it’s usually networking.k8s.io/v1 (current stable version).
+
+* **kind**: always Ingress.
+
+* **metadata**: includes name, namespace, and optionally annotations. annotations are extra configuration options understood by the ingress controller (like rewrite rules, ssl redirect, rate limiting, etc.).
+
+* **spec**:
+
+  * **ingressClassName**: tells kubernetes which ingress controller should handle this object (e.g., nginx, traefik).
+  * **rules**: this is where routing happens.
+    * **host**: the domain name you want to expose.
+      * **http.paths**:
+        * **path**: the URL path to match (like /, /api, /login).
+        * **pathType**: how the path is matched (Prefix, Exact, or ImplementationSpecific).
+        * **backend.service.name**: the service name inside the cluster that should receive the traffic.
+        * **backend.service.port.number**: which port of the service to send requests to.
+there’s also tls configuration, which lets you terminate https traffic at the ingress:
+```yaml
+tls:
+- hosts:
+  - web.example.com
+  secretName: web-tls-secret
+```
+this means the ingress controller will use the tls certificate stored in the secret web-tls-secret to handle https for web.example.com.
+
+---
+```mermaid
+graph TD
+    A[Client Request: https://web.example.com] --> B[Ingress Controller]
+    B -->|Rule: Host web.example.com| C[web-service]
+    A2[Client Request: https://api.example.com] --> B
+    B -->|Rule: Host api.example.com| D[api-service]
+    C --> E[Pods with label app=web]
+    D --> F[Pods with label app=api]
+```
+
+
 ### Kubernetes Networking
 Kubernetes networking has 3 fundamental rules:
 1. Every pod gets a unique IP.
@@ -213,6 +426,7 @@ flowchart TD
 ## kurbernetes (k8s) Simplified Diagram
 ![diagram](./../images/Blank-diagram.png)
 
+
 ## K3S
 K3s is a highly available, certified Kubernetes distribution designed for production workloads in unattended, resource-constrained, remote locations or inside IoT appliances.
 ### K3s Architecture Overview
@@ -238,11 +452,11 @@ K3s defaults to containerd instead of Docker for running containers.
 ## Kubernetes YAML File Explained 
 each configuration file in kubernetes usually has 3 main parts:
 
-the first one is the metadata. this section describes basic info about the object you are creating like its name, namespace, and any labels or annotations you want to attach. metadata is mostly just identification and organization.
+the first one is the **metadata**. this section describes basic info about the object you are creating like its name, namespace, and any labels or annotations you want to attach. metadata is mostly just identification and organization.
 
-the second part is the specification (written as spec). this is where you actually tell kubernetes what you want the object to look like. for example, in a deployment spec you can say how many replicas you want, which container image to use, what ports should be exposed, and so on. basically, spec is the “desired state.”
+the second part is the **specification** (written as spec). this is where you actually tell kubernetes what you want the object to look like. for example, in a deployment spec you can say how many replicas you want, which container image to use, what ports should be exposed, and so on. basically, spec is the “desired state.”
 
-the third part is the status. unlike the other two, you don’t write this part yourself. kubernetes generates it automatically when the resource runs. it shows the “current state” of the object and it is continuously updated. kubernetes always compares the status against the spec (the desired state) and makes changes to bring the cluster into alignment. all of this info is stored in etcd, the internal database that kubernetes uses.
+the third part is the **status**. unlike the other two, you don’t write this part yourself. kubernetes generates it automatically when the resource runs. it shows the “current state” of the object and it is continuously updated. kubernetes always compares the status against the spec (the desired state) and makes changes to bring the cluster into alignment. all of this info is stored in etcd, the internal database that kubernetes uses.
 
 ---
 what is deployment ??
@@ -316,6 +530,8 @@ what is deployment ??
 deployment manages the pods that are below them and in the configuration file is have a template part which in itself holds the configuration file for pods that it manages and these information are what ports are open on a container and what is its name and so on also we use labels to track the pods that are created by a certain deployment 
 
 and for the selector part its mainly used on a service config to link it or better yet match it to a deployment another thing that is configured is the ports of the services which ports it will forward the request to and which port it will receive requests in.  -->
+
+## ArgoCD
 
 ## Part 1: K3s and Vagrant
 We are setting up two virtual machines (nodes) using Vagrant:

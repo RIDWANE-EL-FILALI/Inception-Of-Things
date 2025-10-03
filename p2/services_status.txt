@@ -1,5 +1,0 @@
-NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
-flask-service-app1   ClusterIP   10.43.85.196    <none>        80/TCP    43s
-flask-service-app2   ClusterIP   10.43.60.164    <none>        80/TCP    43s
-flask-service-app3   ClusterIP   10.43.186.173   <none>        80/TCP    43s
-kubernetes           ClusterIP   10.43.0.1       <none>        443/TCP   46s
