@@ -223,7 +223,7 @@ there is several types of services in kubernetes
 pods are identified to a service throught its selected attribute in the manifest file (explain this a bit more with an examples simple snippets )
 
 * **ClusterIP**: this is a default type of a service. 
-* **Headless**: what if the client wantto talk to a pod directly whitout a pod. this stat can happen when we are deploying statefull applications like db, mongodb ..., as an examples and explain the examples in a geneoin way simply in the case of two dbs one in master and worker nodes when new wokrer node starts it has to connect to the master and clone the db stat for this scenario to happen the client has to know each pod ip address there is two ways of doing that one it making a request to the api server and getting all the pods info and they're ips but this will make the application too tied to the k8s api and yo have to get all the pods info everytime. second option is dns lookup how tis work is when performing a dns lookup it only returns the ip address of a service and this will be the service clustesIP. but if you specify the clusterIP attribute to none when performing a dns lookup it will return all the pod ip that are related to that specfic service give an examples snippet 
+* **Headless**: what if the client wantto talk to a pod directly whitout a pod. this stat can happen when we are deploying statefull applications like db, mongodb ..., as an examples and explain the examples in a geneoin way simply in the case of two dbs one in master and worker nodes when a new wokrer node starts it has to connect to the master and clone the db stat for this scenario to happen the client has to know each pod ip address there is two ways of doing that one it making a request to the api server and getting all the pods info and they're ips but this will make the application too tied to the k8s api and yo have to get all the pods info everytime. second option is dns lookup how tis work is when performing a dns lookup it only returns the ip address of a service and this will be the service clustesIP. but if you specify the clusterIP attribute to none when performing a dns lookup it will return all the pod ip that are related to that specfic service give an examples snippet 
 * **NodePort**:  createsa  service that is accessible one each pod in the cluster as an example other services do no allow access to pods except through the service itself but in nodeport it opens a port directly to the pod explain in better way  so this way the request comes directly throught the prot with no ingres 
 * **LoadBalancer**: how it works is the service becomes available externaly through a cloudprovided loadbalancer functionality (explain in a bit more details)  -->
 
@@ -533,6 +533,370 @@ and for the selector part its mainly used on a service config to link it or bett
 
 ## ArgoCD
 
+### What is ArgoCD
+
+ArgoCD is a **declarative, GitOps continuous delivery tool** for Kubernetes. It follows the GitOps methodology where Git repositories serve as the single source of truth for defining the desired application state.
+
+ArgoCD continuously monitors Git repositories for changes and automatically synchronizes the live state in your Kubernetes cluster to match the desired state defined in Git.
+
+**Key Characteristics:**
+- **Declarative**: You define *what* you want, not *how* to achieve it
+- **Git-native**: Uses Git as the source of truth for application definitions
+- **Kubernetes-native**: Runs inside Kubernetes and uses Kubernetes APIs
+- **Real-time**: Continuously monitors and syncs state differences
+
+### Why ArgoCD? its use cases
+
+#### **Traditional vs GitOps Deployment**
+
+```mermaid
+flowchart TD
+    subgraph TRADITIONAL["Traditional CI/CD"]
+        Dev1[Developer] --> Git1[Git Push]
+        Git1 --> CI1[CI Pipeline]
+        CI1 --> Build1[Build & Test]
+        Build1 --> Deploy1[Direct Deploy to K8s]
+        Deploy1 --> K8s1[Kubernetes Cluster]
+    end
+
+    subgraph GITOPS["GitOps with ArgoCD"]
+        Dev2[Developer] --> Git2[Git Push]
+        Git2 --> CI2[CI Pipeline]
+        CI2 --> Build2[Build & Push Image]
+        Build2 --> Update[Update Manifest in Git]
+        Update --> ArgoCD[ArgoCD Monitors]
+        ArgoCD --> Sync[Auto Sync]
+        Sync --> K8s2[Kubernetes Cluster]
+    end
+
+    style TRADITIONAL fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style GITOPS fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+#### **Use Cases:**
+
+1. **Multi-Environment Management**
+   - Development, Staging, Production environments
+   - Each environment tracked by separate Git branches/repos
+   - Consistent deployment process across all environments
+
+2. **Multi-Cluster Deployments**
+   - Deploy same application across multiple Kubernetes clusters
+   - Centralized management from single ArgoCD instance
+   - Cross-cluster application synchronization
+
+3. **Security & Compliance**
+   - No direct cluster access needed for deployments
+   - All changes tracked in Git (audit trail)
+   - Role-based access control through Git permissions
+
+4. **Disaster Recovery**
+   - Entire cluster state stored in Git
+   - Quick cluster reconstruction from Git repositories
+   - Version-controlled infrastructure as code
+
+### How ArgoCD works && benefits
+
+#### **ArgoCD Architecture**
+
+```mermaid
+flowchart TD
+    subgraph ARGOCD["ArgoCD Components"]
+        APIServer["API Server<br>(argocd-server)"]
+        RepoServer["Repository Server<br>(argocd-repo-server)"]
+        AppController["Application Controller<br>(argocd-application-controller)"]
+        Redis["Redis<br>(Cache & Session Storage)"]
+        DEX["DEX<br>(Identity Provider)"]
+    end
+
+    subgraph EXTERNAL["External Systems"]
+        Git["Git Repositories<br>(GitHub, GitLab, etc.)"]
+        K8sAPI["Kubernetes API Server"]
+        WebUI["ArgoCD Web UI"]
+        CLI["ArgoCD CLI"]
+    end
+
+    %% Connections
+    WebUI --> APIServer
+    CLI --> APIServer
+    APIServer --> Redis
+    APIServer --> DEX
+    APIServer --> AppController
+    AppController --> RepoServer
+    AppController --> K8sAPI
+    RepoServer --> Git
+
+    style ARGOCD fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style EXTERNAL fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+#### **Core Components Explained:**
+
+1. **API Server (argocd-server)**
+   - Exposes REST/gRPC API and Web UI
+   - Handles authentication and authorization
+   - Serves as the main interface for users and CLI
+
+2. **Repository Server (argocd-repo-server)**
+   - Maintains local cache of Git repositories
+   - Generates Kubernetes manifests from various sources (Helm, Kustomize, plain YAML)
+   - Handles Git operations (clone, fetch, checkout)
+
+3. **Application Controller (argocd-application-controller)**
+   - Monitors applications and compares live state vs desired state
+   - Performs synchronization operations
+   - Manages application lifecycle and health checks
+
+4. **Redis**
+   - Caches repository data and application state
+   - Stores user sessions and temporary data
+   - Improves performance by reducing Git operations
+
+#### **GitOps Workflow with ArgoCD**
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Git as Git Repository
+    participant ArgoCD as ArgoCD Controller
+    participant K8s as Kubernetes Cluster
+
+    Dev->>Git: 1. Push code changes
+    Dev->>Git: 2. Update Kubernetes manifests
+    
+    loop Every 3 minutes (configurable)
+        ArgoCD->>Git: 3. Poll for changes
+        Git-->>ArgoCD: 4. Return latest commit
+    end
+    
+    ArgoCD->>K8s: 5. Compare desired vs live state
+    K8s-->>ArgoCD: 6. Return current cluster state
+    
+    alt State differs
+        ArgoCD->>K8s: 7. Apply changes (sync)
+        K8s-->>ArgoCD: 8. Confirm sync status
+        ArgoCD->>Git: 9. Update application status
+    else State matches
+        ArgoCD->>ArgoCD: 10. No action needed
+    end
+```
+
+#### **Application Sync States**
+
+```mermaid
+stateDiagram-v2
+    [*] --> OutOfSync: Manifest changes detected
+    OutOfSync --> Syncing: Manual/Auto sync triggered
+    Syncing --> Synced: Sync successful
+    Syncing --> Failed: Sync failed
+    Synced --> OutOfSync: New changes in Git
+    Failed --> Syncing: Retry sync
+    Synced --> [*]: Application deleted
+
+    state OutOfSync {
+        [*] --> Unknown: Initial state
+        Unknown --> OutOfSync: Git diff detected
+    }
+
+    state Syncing {
+        [*] --> Progressing: Applying changes
+        Progressing --> Terminating: Error occurred
+    }
+```
+
+#### **ArgoCD Application Resource**
+
+An **Application** is the primary resource in ArgoCD that defines:
+- **Source**: Git repository and path containing Kubernetes manifests
+- **Destination**: Target Kubernetes cluster and namespace
+- **Sync Policy**: How and when to synchronize
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/user/repo'
+    targetRevision: HEAD
+    path: 'k8s-manifests'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true      # Delete resources not in Git
+      selfHeal: true   # Correct manual changes
+    syncOptions:
+    - CreateNamespace=true
+```
+
+#### **Sync Strategies**
+
+```mermaid
+flowchart TD
+    App[ArgoCD Application] --> SyncPolicy{Sync Policy}
+    
+    SyncPolicy -->|Manual| Manual[Manual Sync]
+    SyncPolicy -->|Automated| Auto[Automated Sync]
+    
+    Manual --> ManualTrigger[User triggers via UI/CLI]
+    ManualTrigger --> Apply[Apply changes to cluster]
+    
+    Auto --> AutoPrune{Prune Enabled?}
+    AutoPrune -->|Yes| DeleteOrphaned[Delete resources not in Git]
+    AutoPrune -->|No| KeepOrphaned[Keep orphaned resources]
+    
+    Auto --> AutoHeal{Self-Heal Enabled?}
+    AutoHeal -->|Yes| RevertManual[Revert manual cluster changes]
+    AutoHeal -->|No| AllowDrift[Allow configuration drift]
+    
+    DeleteOrphaned --> Apply
+    KeepOrphaned --> Apply
+    RevertManual --> Apply
+    AllowDrift --> Apply
+
+    style Auto fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style Manual fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+#### **Benefits of ArgoCD**
+
+**1. GitOps Compliance**
+- **Single Source of Truth**: Git repository contains complete system state
+- **Declarative**: Describe desired state, not deployment procedures
+- **Versioned**: Every change tracked with Git commits
+- **Auditable**: Complete deployment history in Git logs
+
+**2. Security Enhancements**
+```mermaid
+flowchart LR
+    subgraph TRADITIONAL["Traditional Deployment"]
+        DevT[Developer] -->|Direct Access| ClusterT[Kubernetes Cluster]
+        CIT[CI Pipeline] -->|kubectl apply| ClusterT
+    end
+    
+    subgraph GITOPS["GitOps Deployment"]
+        DevG[Developer] -->|Git Push Only| GitRepo[Git Repository]
+        ArgoCD[ArgoCD] -->|Pull & Apply| ClusterG[Kubernetes Cluster]
+        GitRepo -->|Webhook/Poll| ArgoCD
+    end
+    
+    style TRADITIONAL fill:#ff9999,stroke:#ff0000,stroke-width:2px
+    style GITOPS fill:#99ff99,stroke:#00ff00,stroke-width:2px
+```
+
+**Security Benefits:**
+- **No direct cluster access**: Developers only need Git access
+- **Credential isolation**: ArgoCD manages cluster credentials
+- **Principle of least privilege**: Limited service account permissions
+- **Encrypted secrets**: Supports sealed secrets and external secret operators
+
+**3. Multi-Environment & Multi-Cluster Management**
+
+```mermaid
+flowchart TD
+    ArgoCD[ArgoCD Control Plane]
+    
+    subgraph REPOS["Git Repositories"]
+        DevRepo[Development Config]
+        StagingRepo[Staging Config]
+        ProdRepo[Production Config]
+    end
+    
+    subgraph CLUSTERS["Kubernetes Clusters"]
+        DevCluster[Development Cluster]
+        StagingCluster[Staging Cluster]
+        ProdCluster[Production Cluster]
+    end
+    
+    ArgoCD --> DevRepo
+    ArgoCD --> StagingRepo
+    ArgoCD --> ProdRepo
+    
+    DevRepo --> DevCluster
+    StagingRepo --> StagingCluster
+    ProdRepo --> ProdCluster
+
+    style ArgoCD fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style REPOS fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style CLUSTERS fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+**4. Disaster Recovery & Rollback**
+
+```mermaid
+flowchart TD
+    Disaster[Cluster Failure] --> Backup{Backup Strategy}
+    
+    Backup -->|Traditional| ETCDBackup[etcd Backup]
+    Backup -->|GitOps| GitRepo[Git Repository]
+    
+    ETCDBackup --> RestoreETCD[Restore from etcd]
+    GitRepo --> NewCluster[New Cluster]
+    
+    RestoreETCD --> LimitedRestore[Partial restore<br>Complex process]
+    NewCluster --> ArgoCD[Install ArgoCD]
+    ArgoCD --> FullRestore[Complete restore<br>Simple process]
+    
+    style GitRepo fill:#99ff99,stroke:#00ff00,stroke-width:2px
+    style FullRestore fill:#99ff99,stroke:#00ff00,stroke-width:2px
+    style LimitedRestore fill:#ff9999,stroke:#ff0000,stroke-width:2px
+```
+
+**Rollback Capabilities:**
+- **Git-based rollback**: `git revert` to previous commit
+- **Application rollback**: ArgoCD UI/CLI rollback to previous version
+- **Automatic rollback**: Configure health checks to trigger automatic rollbacks
+- **Blue-green deployments**: Maintain multiple environment branches
+
+#### **Advanced ArgoCD Features**
+
+**1. App of Apps Pattern**
+
+```mermaid
+flowchart TD
+    RootApp[Root Application<br>app-of-apps] --> AppRepo[Applications Repository]
+    
+    AppRepo --> App1Manifest[Application 1 Manifest]
+    AppRepo --> App2Manifest[Application 2 Manifest]
+    AppRepo --> App3Manifest[Application 3 Manifest]
+    
+    App1Manifest --> App1[Application 1]
+    App2Manifest --> App2[Application 2]
+    App3Manifest --> App3[Application 3]
+    
+    App1 --> Service1[Microservice 1]
+    App2 --> Service2[Microservice 2]
+    App3 --> Service3[Microservice 3]
+
+    style RootApp fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+**2. Progressive Deployment Strategies**
+
+```mermaid
+flowchart TD
+    GitCommit[Git Commit] --> Dev[Development Environment]
+    Dev -->|Automated| Staging[Staging Environment]
+    Staging -->|Manual Approval| Prod[Production Environment]
+    
+    subgraph DEPLOYMENT_STRATEGIES["Deployment Strategies"]
+        BlueGreen[Blue-Green Deployment]
+        Canary[Canary Deployment]
+        RollingUpdate[Rolling Update]
+    end
+    
+    Prod --> BlueGreen
+    Prod --> Canary
+    Prod --> RollingUpdate
+
+    style DEPLOYMENT_STRATEGIES fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
 ## Part 1: K3s and Vagrant
 We are setting up two virtual machines (nodes) using Vagrant:
 
@@ -605,4 +969,132 @@ flowchart TD
     MasterNode -->|"Ingress Controller (Traefik)"| A4
     MasterNode -->|"Ingress Controller (Traefik)"| A5
 ```
+## Part 3: K3d, kubectl and ArgoCD
+
+In this part, we set up a K3d cluster (lightweight K3s in Docker) and deploy ArgoCD for GitOps-based application management.
+
+**Architecture Overview:**
+
+```mermaid
+flowchart TD
+    subgraph HOST["Host Machine"]
+        K3d[K3d Cluster Manager]
+        Docker[Docker Engine]
+        
+        subgraph K3D_CLUSTER["K3d Cluster (iot-cluster)"]
+            subgraph ARGOCD_NS["argocd namespace"]
+                ArgoCDServer[ArgoCD Server]
+                RepoServer[Repository Server]
+                AppController[Application Controller]
+                Redis[Redis Cache]
+            end
+            
+            subgraph DEV_NS["dev namespace"]
+                App[T2O Application<br>broly20/flask-app-p3:v2]
+            end
+        end
+    end
+    
+    subgraph EXTERNAL["External Access"]
+        WebUI[ArgoCD Web UI<br>localhost:30002]
+        AppUI[Application UI<br>localhost:30001]
+    end
+    
+    subgraph GIT["Git Repository"]
+        Manifests[Kubernetes Manifests<br>deployment.yaml<br>namespaces.yaml]
+    end
+    
+    %% Connections
+    K3d --> Docker
+    Docker --> K3D_CLUSTER
+    ArgoCDServer --> RepoServer
+    ArgoCDServer --> AppController
+    AppController --> App
+    RepoServer --> Manifests
+    WebUI --> ArgoCDServer
+    AppUI --> App
+
+    style HOST fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style EXTERNAL fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style GIT fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+### Setup Components:
+
+#### **1. K3d Cluster Setup**
+- **K3d**: Runs K3s (lightweight Kubernetes) inside Docker containers
+- **Cluster Name**: `iot-cluster`
+- **Port Mapping**: Maps cluster ports to host for external access
+
+#### **2. ArgoCD Installation**
+- **Namespace**: `argocd` - dedicated namespace for ArgoCD components
+- **Components**: API Server, Repository Server, Application Controller, Redis
+- **Access**: NodePort service exposes ArgoCD UI on localhost:30002
+
+#### **3. Application Deployment**
+- **Namespace**: `dev` - application deployment namespace
+- **Image**: `broly20/flask-app-p3:v2` - Flask web application
+- **Replicas**: 1 pod with resource limits and health checks
+- **Service**: NodePort on port 30001 (accessible via localhost:30001)
+
+### GitOps Workflow:
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Git as GitHub Repository
+    participant ArgoCD as ArgoCD Application Controller
+    participant K3d as K3d Cluster
+
+    Dev->>Git: 1. Push YAML manifests to p3/ folder
+    Note over Git: deployment.yaml, namespaces.yaml
+    
+    loop Every 3 minutes
+        ArgoCD->>Git: 2. Poll repository for changes
+        Git-->>ArgoCD: 3. Return latest commit SHA
+    end
+    
+    ArgoCD->>K3d: 4. Compare desired vs actual state
+    K3d-->>ArgoCD: 5. Return current pod/service status
+    
+    alt Configuration differs
+        ArgoCD->>K3d: 6. Apply new manifests
+        K3d-->>ArgoCD: 7. Confirm deployment status
+        Note over ArgoCD: Update application health
+    else No changes
+        ArgoCD->>ArgoCD: 8. Maintain current state
+    end
+```
+
+### Deployment Process:
+
+1. **Infrastructure Setup**: Run `install_dependencies.sh` to install Docker, kubectl, k3d, and ArgoCD CLI
+2. **Cluster Creation**: Execute `create_cluster.sh` to:
+   - Create K3d cluster with port mappings
+   - Apply namespace configurations
+   - Install ArgoCD in the cluster
+   - Deploy ArgoCD NodePort service
+   - Create ArgoCD Application resource
+3. **GitOps Sync**: ArgoCD automatically syncs the application from the Git repository
+
+### Key Features Demonstrated:
+
+1. **GitOps Principle**: All configuration stored in Git repository (`p3` folder)
+2. **Automated Sync**: ArgoCD automatically detects and applies changes from Git
+3. **Self-Healing**: Manual cluster changes are reverted to match Git state
+4. **Resource Management**: Proper namespacing, resource limits, health checks
+5. **External Access**: Both ArgoCD UI and application accessible from host machine
+
+### Configuration Files:
+
+- **`namespaces.yaml`**: Creates `argocd` and `dev` namespaces
+- **`deployment.yaml`**: Defines the Flask application deployment and NodePort service
+- **`argocd-nodeport.yaml`**: Exposes ArgoCD UI via NodePort on port 30002
+- **`argocd-app.yaml`**: ArgoCD Application resource that tracks the Git repository
+
+### Access URLs:
+- **ArgoCD Dashboard**: `http://localhost:30002`
+- **T2O Application**: `http://localhost:30001`
+
+This setup demonstrates a complete GitOps pipeline where infrastructure and applications are managed declaratively through Git, providing automated deployment, rollback capabilities, and full audit trails. The K3d approach makes it lightweight and perfect for development and testing scenarios.
 
