@@ -1,5 +1,4 @@
 #!/bin/bash
-# Minimal K3d cluster setup and deploy Argo CD + app
 set -e
 
 CLUSTER_NAME="iot-cluster"
@@ -15,15 +14,20 @@ k3d cluster create $CLUSTER_NAME \
   --port "8888:30001@loadbalancer" \
   --port "8080:30002@loadbalancer"
 
-
-echo "[+] Applying namespaces..."
-kubectl apply -f namespaces.yaml
+echo "[+] Creating namespaces and deploying application..."
+kubectl apply -f deployment.yaml
 
 echo "[+] Installing Argo CD..."
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-echo "[+] Waiting for Argo CD to be ready..."
-kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+echo "[+] Waiting for Argo CD to be ready (this may take 5-10 minutes)..."
+# Increase timeout and add better error handling
+kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd || {
+    echo "⚠️  ArgoCD server taking longer than expected. Checking status..."
+    kubectl get pods -n argocd
+    kubectl describe deployment argocd-server -n argocd
+    echo "Continuing with setup..."
+}
 
 echo "[+] Creating ArgoCD NodePort service..."
 kubectl apply -f argocd-nodeport.yaml
@@ -34,17 +38,17 @@ kubectl apply -f argocd-app.yaml
 echo "[+] Waiting for application to sync..."
 sleep 15
 
-# ArgoCD will be accessible via NodePort on localhost:8080
-
-
-
 echo
 echo "======================================================="
-echo "✅ Cluster is ready!"
+echo "✅ Cluster setup complete!"
 echo
 echo "🌐 Access your app at:   http://localhost:8888"
-echo "🌐 Access Argo CD UI at: https://localhost:8080"
+echo "🌐 Access Argo CD UI at: http://localhost:8080"
 echo
 echo "🔑 To get Argo CD admin password, run:"
 echo "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo"
+echo
+echo "📊 Check ArgoCD status:"
+echo "kubectl get pods -n argocd"
+echo "kubectl get applications -n argocd"
 echo "======================================================="

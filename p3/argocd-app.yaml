@@ -11,7 +11,7 @@ spec:
     path: 'p3'
     directory:
       recurse: false
-      include: '{deployment.yaml,namespaces.yaml}'  # Only include specific config files
+      include: '{deployment.yaml}'  # Only include specific config files
       exclude: '{argocd-app.yaml,argocd-nodeport.yaml,*.sh}'  # Exclude ArgoCD files and scripts
   destination:
     server: 'https://kubernetes.default.svc'
