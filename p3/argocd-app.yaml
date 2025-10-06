@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: t2o-app
   namespace: argocd
+data:
+  # Set the interval (in seconds)
+  reposerver.repo.polling.interval.seconds: "30"
 spec:
   project: default
   source:
