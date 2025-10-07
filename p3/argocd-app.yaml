@@ -4,7 +4,7 @@ metadata:
   name: t2o-app
   namespace: argocd
 data:
-  reposerver.repo.polling.interval.seconds: "30"
+  reposerver.repo.polling.interval.seconds: "2"
 spec:
   project: default
   source:
