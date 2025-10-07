@@ -45,8 +45,9 @@ echo
 echo "🌐 Access your app at:   http://localhost:8888"
 echo "🌐 Access Argo CD UI at: http://localhost:8080"
 echo
-echo "🔑 To get Argo CD admin password, run:"
-echo "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo"
+echo "use this password to login to ArgoCD:"
+echo "Username: admin"
+echo "Password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo)"
 echo
 echo "📊 Check ArgoCD status:"
 echo "kubectl get pods -n argocd"

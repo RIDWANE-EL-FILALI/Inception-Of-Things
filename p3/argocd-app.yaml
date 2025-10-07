@@ -4,7 +4,6 @@ metadata:
   name: t2o-app
   namespace: argocd
 data:
-  # Set the interval (in seconds)
   reposerver.repo.polling.interval.seconds: "30"
 spec:
   project: default
@@ -12,10 +11,6 @@ spec:
     repoURL: 'https://github.com/RIDWANE-EL-FILALI/Inception-Of-Things'
     targetRevision: HEAD
     path: 'p3'
-    directory:
-      recurse: false
-      include: '{deployment.yaml}'  # Only include specific config files
-      exclude: '{argocd-app.yaml,argocd-nodeport.yaml,*.sh}'  # Exclude ArgoCD files and scripts
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: dev
