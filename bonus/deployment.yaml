@@ -40,6 +40,7 @@ spec:
   type: NodePort
   ports:
     - protocol: TCP
-      port: 5000
-      targetPort: 5000
-      nodePort: 30001
+      port: 5000       # Cluster port
+      targetPort: 5000 # Container port
+      nodePort: 30001  # Exposed on localhost
+

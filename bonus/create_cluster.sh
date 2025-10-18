@@ -11,8 +11,9 @@ k3d cluster create $CLUSTER_NAME \
   --api-port 6550 \
   --servers 1 \
   --agents 1 \
-  --port "8888:30001@server:0" \
-  --port "8080:30002@server:0"
+  --port "8888:30001@loadbalancer" \
+  --port "8080:30002@loadbalancer" \
+  --port "8181:30003@loadbalancer"
 
 echo "[+] Creating namespaces and deploying application..."
 kubectl apply -f deployment.yaml
@@ -20,8 +21,13 @@ kubectl apply -f deployment.yaml
 echo "[+] Installing Argo CD..."
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-echo "[+] Waiting for Argo CD to be ready..."
-kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd
+echo "[+] Waiting for Argo CD to be ready (this may take 5-10 minutes)..."
+kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd || {
+    echo "⚠️  ArgoCD server taking longer than expected. Checking status..."
+    kubectl get pods -n argocd
+    kubectl describe deployment argocd-server -n argocd
+    echo "Continuing with setup..."
+}
 
 echo "[+] Creating ArgoCD NodePort service..."
 kubectl apply -f argocd-nodeport.yaml
@@ -29,29 +35,30 @@ kubectl apply -f argocd-nodeport.yaml
 echo "[+] Deploying Argo CD application..."
 kubectl apply -f argocd-app.yaml
 
-echo "[+] Waiting for application to sync..."
-sleep 10
+echo "[+] Deploying GitLab..."
+kubectl apply -f gitlab-deployment.yaml
+
+echo "[+] Waiting for GitLab to start (this takes 3-5 minutes)..."
+sleep 30
 
 echo
 echo "======================================================="
-echo "✅ K3d Cluster setup complete!"
+echo "✅ Cluster setup complete!"
 echo
-echo "🌐 App URL:        http://localhost:8888"
-echo "🌐 Argo CD UI:     http://localhost:8080"
+echo "🌐 Access your app at:   http://localhost:8888"
+echo "🌐 Access Argo CD UI at: http://localhost:8080"
+echo "🌐 Access GitLab at:     http://localhost:8181"
 echo
-echo "🧩 ArgoCD login:"
-echo "   Username: admin"
-echo "   Password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo)"
+echo "ArgoCD Credentials:"
+echo "Username: admin"
+echo "Password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo)"
 echo
-echo "📊 All Pods:"
-kubectl get pods -A
+echo "GitLab Credentials:"
+echo "Username: root"
+echo "Password: rootpassword123"
 echo
-echo "======================================================="
-echo
-echo "ℹ️  To start GitLab VM:"
-echo "   cd vagrant-gitlab"
-echo "   vagrant up"
-echo
-echo "   GitLab will be available at http://localhost:8090"
-echo "   (Initial startup takes ~10 minutes)"
+echo "📊 Check status:"
+echo "kubectl get pods -n argocd"
+echo "kubectl get pods -n gitlab"
+echo "kubectl get applications -n argocd"
 echo "======================================================="
