@@ -8,11 +8,6 @@ kind: Namespace
 metadata:
   name: dev
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: gitlab
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,7 +40,6 @@ spec:
   type: NodePort
   ports:
     - protocol: TCP
-      port: 5000       # Cluster port
-      targetPort: 5000 # Container port
-      nodePort: 30001  # Exposed on localhost
-
+      port: 5000
+      targetPort: 5000
+      nodePort: 30001

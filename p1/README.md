@@ -896,6 +896,255 @@ flowchart TD
 
     style DEPLOYMENT_STRATEGIES fill:#000,stroke:#fff,stroke-width:3px,color:#fff
 ```
+## K3d
+### what is k3d
+
+K3d is a **lightweight wrapper** that runs K3s (Rancher's minimal Kubernetes distribution) in Docker containers. It makes it incredibly easy to create single and multi-node K3s clusters on your local machine for development and testing.
+
+**Key Characteristics:**
+- **Docker-based**: Runs K3s inside Docker containers instead of VMs
+- **Lightweight**: Much faster startup than traditional Kubernetes clusters
+- **Multi-cluster**: Can run multiple isolated clusters simultaneously
+- **Port mapping**: Easy exposure of cluster services to host machine
+- **Registry support**: Built-in local registry integration
+
+**Why K3d over other solutions:**
+- **Speed**: Cluster creation in seconds vs minutes (compared to minikube/kind)
+- **Resource efficient**: Lower memory and CPU footprint
+- **CI/CD friendly**: Perfect for automated testing pipelines
+- **Multi-cluster**: Test complex scenarios with multiple clusters
+
+### how it works
+
+#### **K3d Architecture**
+
+```mermaid
+flowchart TD
+    subgraph HOST["Host Machine"]
+        Docker[Docker Engine]
+        K3dCLI[k3d CLI]
+        
+        subgraph CONTAINERS["Docker Containers"]
+            subgraph CLUSTER["K3d Cluster"]
+                Server[K3s Server Container<br>Control Plane + Worker]
+                Agent1[K3s Agent Container<br>Worker Node 1]
+                Agent2[K3s Agent Container<br>Worker Node 2]
+                LoadBalancer[Load Balancer Container<br>HAProxy/Nginx]
+                Registry[Local Registry Container<br>Optional]
+            end
+        end
+    end
+    
+    subgraph EXTERNAL["External Access"]
+        Kubectl[kubectl CLI]
+        Browser[Web Browser]
+        Apps[Applications]
+    end
+    
+    %% Connections
+    K3dCLI --> Docker
+    Docker --> Server
+    Docker --> Agent1
+    Docker --> Agent2
+    Docker --> LoadBalancer
+    Docker --> Registry
+    
+    Kubectl --> LoadBalancer
+    LoadBalancer --> Server
+    Browser --> LoadBalancer
+    Apps --> LoadBalancer
+
+    style HOST fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style EXTERNAL fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+#### **Core Components:**
+
+**1. K3s Server Container**
+- Runs the complete K3s control plane (API server, scheduler, controller manager)
+- Can also act as a worker node (runs kubelet and container runtime)
+- Stores cluster state in embedded SQLite (or external datastore)
+
+**2. K3s Agent Containers**
+- Additional worker nodes that join the server
+- Run kubelet and container runtime (containerd)
+- Connect to server via K3s token for authentication
+
+**3. Load Balancer Container**
+- HAProxy or Nginx container that proxies traffic to server nodes
+- Provides single entry point for kubectl and applications
+- Handles high availability when multiple server nodes exist
+
+**4. Local Registry (Optional)**
+- Private Docker registry running in container
+- Allows pushing/pulling custom images without external registry
+- Automatically configured in cluster for seamless image access
+
+#### **K3d vs K3s vs K8s Comparison**
+
+```mermaid
+flowchart TD
+    subgraph FULL_K8S["Full Kubernetes"]
+        K8sAPI[kube-apiserver]
+        K8sScheduler[kube-scheduler]
+        K8sController[kube-controller-manager]
+        K8sETCD[etcd]
+        K8sKubelet[kubelet]
+        K8sProxy[kube-proxy]
+        K8sContainer[Container Runtime]
+    end
+    
+    subgraph K3S["K3s (Lightweight)"]
+        K3sServer["K3s Server<br>(Combined Components)"]
+        K3sSQLite[SQLite/etcd]
+        K3sAgent["K3s Agent<br>(kubelet + runtime)"]
+    end
+    
+    subgraph K3D["K3d (Containerized K3s)"]
+        DockerHost[Docker Host]
+        K3dContainer1["Container 1: K3s Server"]
+        K3dContainer2["Container 2: K3s Agent"]
+        K3dLB["Container 3: Load Balancer"]
+    end
+    
+    %% Connections
+    K8sAPI --> K8sETCD
+    K8sScheduler --> K8sAPI
+    K8sController --> K8sAPI
+    
+    K3sServer --> K3sSQLite
+    K3sAgent --> K3sServer
+    
+    DockerHost --> K3dContainer1
+    DockerHost --> K3dContainer2
+    DockerHost --> K3dLB
+
+    style FULL_K8S fill:#ff9999,stroke:#ff0000,stroke-width:2px
+    style K3S fill:#ffff99,stroke:#ffaa00,stroke-width:2px
+    style K3D fill:#99ff99,stroke:#00ff00,stroke-width:2px
+```
+
+#### **K3d Cluster Lifecycle**
+
+```mermaid
+sequenceDiagram
+    participant User as Developer
+    participant K3d as k3d CLI
+    participant Docker as Docker Engine
+    participant Cluster as K3s Cluster
+
+    User->>K3d: k3d cluster create my-cluster
+    K3d->>Docker: Pull K3s Docker image
+    Docker-->>K3d: Image ready
+    
+    K3d->>Docker: Create server container
+    Docker->>Cluster: Start K3s server process
+    Cluster-->>Docker: Server ready
+    
+    K3d->>Docker: Create agent containers (if multi-node)
+    Docker->>Cluster: Join agents to server
+    
+    K3d->>Docker: Create load balancer container
+    Docker->>Cluster: Configure HAProxy routing
+    
+    K3d->>User: Update kubeconfig
+    User->>Cluster: kubectl get nodes
+    Cluster-->>User: Cluster ready!
+    
+    Note over User,Cluster: Development work...
+    
+    User->>K3d: k3d cluster delete my-cluster
+    K3d->>Docker: Remove all containers
+    Docker-->>K3d: Cleanup complete
+```
+
+#### **Port Mapping & Networking**
+
+```mermaid
+flowchart LR
+    subgraph HOST["Host Machine :8080, :8888"]
+        HostPort8080[Host Port 8080]
+        HostPort8888[Host Port 8888]
+    end
+    
+    subgraph DOCKER["Docker Network"]
+        LB[Load Balancer Container]
+        
+        subgraph K3S_CLUSTER["K3s Cluster"]
+            Server[Server Container]
+            
+            subgraph WORKLOADS["Kubernetes Workloads"]
+                Service1[Service A :80]
+                Service2[Service B :5000]
+                Pod1[Pod A :80]
+                Pod2[Pod B :5000]
+            end
+        end
+    end
+    
+    %% Port mappings
+    HostPort8080 --> LB
+    HostPort8888 --> LB
+    LB --> Server
+    Server --> Service1
+    Server --> Service2
+    Service1 --> Pod1
+    Service2 --> Pod2
+
+    style HOST fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style DOCKER fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+#### **Key Benefits of K3d:**
+
+**1. Speed & Efficiency**
+- Cluster creation: ~10 seconds vs ~5 minutes (minikube)
+- Resource usage: ~100MB RAM vs ~2GB RAM (full K8s)
+- No hypervisor needed (uses Docker instead of VMs)
+
+**2. Development Workflow**
+```mermaid
+flowchart TD
+    Code[Write Code] --> Build[Build Image]
+    Build --> Push[Push to Local Registry]
+    Push --> Deploy[Deploy to K3d]
+    Deploy --> Test[Test Application]
+    Test --> Debug[Debug Issues]
+    Debug --> Code
+    
+    style Code fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+    style Deploy fill:#000,stroke:#fff,stroke-width:3px,color:#fff
+```
+
+**3. Multi-Cluster Testing**
+```bash
+# Create multiple isolated clusters
+k3d cluster create dev-cluster
+k3d cluster create staging-cluster
+k3d cluster create test-cluster
+
+# Switch between clusters
+kubectl config use-context k3d-dev-cluster
+kubectl config use-context k3d-staging-cluster
+```
+
+**4. CI/CD Integration**
+```yaml
+# GitHub Actions example
+- name: Create k3d cluster
+  run: k3d cluster create test-cluster --wait
+
+- name: Deploy application
+  run: kubectl apply -f manifests/
+
+- name: Run tests
+  run: pytest integration_tests/
+
+- name: Cleanup
+  run: k3d cluster delete test-cluster
+```
+
+This makes K3d perfect for local development, testing, and CI/CD pipelines where you need fast, lightweight Kubernetes clusters that behave exactly like production clusters but without the overhead.
 
 ## Part 1: K3s and Vagrant
 We are setting up two virtual machines (nodes) using Vagrant:
