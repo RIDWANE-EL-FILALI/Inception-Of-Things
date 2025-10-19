@@ -24,11 +24,33 @@ spec:
           ports:
             - containerPort: 80
             - containerPort: 22
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
           env:
             - name: GITLAB_OMNIBUS_CONFIG
               value: |
                 external_url 'http://localhost:8181'
-                gitlab_rails['initial_root_password'] = 'rootpassword123'
+                gitlab_rails['initial_root_password'] = 'GitLabR00t@2024!'
+                
+                # Disable monitoring (newer syntax)
+                prometheus_monitoring['enable'] = false
+                
+                # Disable other unnecessary services
+                gitlab_kas['enable'] = false
+                gitlab_pages['enable'] = false
+                registry['enable'] = false
+                
+                # Reduce resource usage
+                sidekiq['max_concurrency'] = 5
+                puma['worker_processes'] = 2
+                puma['min_threads'] = 1
+                puma['max_threads'] = 2
+                postgresql['shared_buffers'] = "128MB"
 ---
 apiVersion: v1
 kind: Service

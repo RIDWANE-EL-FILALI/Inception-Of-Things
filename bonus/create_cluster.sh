@@ -35,11 +35,34 @@ kubectl apply -f argocd-nodeport.yaml
 echo "[+] Deploying Argo CD application..."
 kubectl apply -f argocd-app.yaml
 
-echo "[+] Deploying GitLab..."
+echo "[+] Deploying GitLab (minimal configuration)..."
 kubectl apply -f gitlab-deployment.yaml
 
-echo "[+] Waiting for GitLab to start (this takes 3-5 minutes)..."
-sleep 30
+echo "[+] Waiting for GitLab pod to start..."
+kubectl wait --for=condition=ready --timeout=180s pod -l app=gitlab -n gitlab
+
+echo "[+] GitLab is initializing (minimal mode - takes 3-5 minutes)..."
+echo "    Waiting for services to start..."
+
+# Wait for GitLab to be fully configured
+MAX_ATTEMPTS=40
+ATTEMPT=0
+while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    if kubectl logs -n gitlab deployment/gitlab --tail=100 2>/dev/null | grep -q "gitlab Reconfigured"; then
+        echo "✅ GitLab is ready!"
+        sleep 5
+        break
+    fi
+    
+    ATTEMPT=$((ATTEMPT + 1))
+    echo "    Still initializing... ($ATTEMPT/$MAX_ATTEMPTS) - ~$((ATTEMPT * 10)) seconds"
+    sleep 10
+done
+
+if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+    echo "⚠️  GitLab is taking longer than expected but should be ready soon..."
+    echo "    Check status with: kubectl logs -n gitlab deployment/gitlab"
+fi
 
 echo
 echo "======================================================="
@@ -47,7 +70,7 @@ echo "✅ Cluster setup complete!"
 echo
 echo "🌐 Access your app at:   http://localhost:8888"
 echo "🌐 Access Argo CD UI at: http://localhost:8080"
-echo "🌐 Access GitLab at:     http://localhost:8181"
+echo "🌐 Access Gitea at:      http://localhost:8181"
 echo
 echo "ArgoCD Credentials:"
 echo "Username: admin"
