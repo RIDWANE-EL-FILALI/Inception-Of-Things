@@ -23,52 +23,27 @@ spec:
           image: gitlab/gitlab-ce:latest
           ports:
             - containerPort: 80
-            - containerPort: 22
-          resources:
-            requests:
-              memory: "2Gi"
-              cpu: "1000m"
-            limits:
-              memory: "4Gi"
-              cpu: "2000m"
           env:
             - name: GITLAB_OMNIBUS_CONFIG
               value: |
-                external_url 'http://localhost:8181'
-                gitlab_rails['initial_root_password'] = 'GitLabR00t@2024!'
-                
-                # Disable monitoring (newer syntax)
-                prometheus_monitoring['enable'] = false
-                
-                # Disable other unnecessary services
-                gitlab_kas['enable'] = false
-                gitlab_pages['enable'] = false
-                registry['enable'] = false
-                
-                # Reduce resource usage
-                sidekiq['max_concurrency'] = 5
-                puma['worker_processes'] = 2
-                puma['min_threads'] = 1
-                puma['max_threads'] = 2
-                postgresql['shared_buffers'] = "128MB"
+                external_url 'http://localhost:9090'
+          volumeMounts:
+            - name: gitlab-storage
+              mountPath: /var/opt/gitlab
+      volumes:
+        - name: gitlab-storage
+          emptyDir: {}  # ephemeral (no persistence)
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: gitlab-service
+  name: gitlab
   namespace: gitlab
 spec:
+  type: NodePort
   selector:
     app: gitlab
-  type: NodePort
   ports:
-    - name: http
-      protocol: TCP
-      port: 80
+    - port: 80
       targetPort: 80
       nodePort: 30003
-    - name: ssh
-      protocol: TCP
-      port: 22
-      targetPort: 22
-      nodePort: 30022

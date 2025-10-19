@@ -1,4 +1,5 @@
 #!/bin/bash
+# Minimal dependencies installer for K3d + Argo CD
 set -e
 
 echo "[+] Updating packages..."
