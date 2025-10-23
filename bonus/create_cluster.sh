@@ -86,7 +86,20 @@ spec:
     release: gitlab
 EOF
 
-echo "🚀 [6/8] Creating ArgoCD Application for auto-deploy..."
+echo "🚀 [6/8] Creating ArgoCD GitLab credentials secret..."
+GITLAB_PASS=$(kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -o jsonpath='{.data.password}' | base64 -d)
+kubectl -n argocd create secret generic gitlab-repo \
+  --from-literal=type=git \
+  --from-literal=url=http://gitlab-webservice-default.gitlab.svc.cluster.local:8181/root/t2o-app.git \
+  --from-literal=username=root \
+  --from-literal=password=$GITLAB_PASS \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl label secret gitlab-repo -n argocd argocd.argoproj.io/secret-type=repository
+
+echo "🔧 Restarting ArgoCD repo server to pick up new credentials..."
+kubectl rollout restart deployment argocd-repo-server -n argocd
+
+echo "🚀 [7/8] Creating ArgoCD Application for auto-deploy..."
 cat <<EOF | kubectl apply -f -
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -108,7 +121,7 @@ spec:
       selfHeal: true
 EOF
 
-echo "🚀 [7/8] Setup complete!"
+echo "🚀 [8/8] Setup complete!"
 
 echo
 echo "======================================================="
