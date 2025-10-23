@@ -134,9 +134,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://gitlab-webservice.gitlab.svc.cluster.local:8181/root/t2o-app.git'
+    repoURL: 'http://gitlab-webservice-default.gitlab.svc.cluster.local:8181/root/t2o-app.git'
     targetRevision: main
-    path: '.'
+    path: 'bonus'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: dev
