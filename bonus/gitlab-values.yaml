@@ -1,0 +1,54 @@
+global:
+  edition: ce
+  hosts:
+    domain: localhost
+    https: false
+  ingress:
+    enabled: false
+    configureCertmanager: false
+  certmanager:
+    install: false
+
+  # Completely disable object storage
+  minio:
+    enabled: false
+  
+  # Disable features that require object storage
+  appConfig:
+    lfs:
+      enabled: false
+    artifacts:
+      enabled: false
+    uploads:
+      enabled: false
+    packages:
+      enabled: false
+    backups:
+      bucket: gitlab-backups
+
+  rails:
+    bootsnap:
+      enabled: false
+
+nginx-ingress:
+  enabled: false
+
+gitlab-runner:
+  install: false
+
+gitlab:
+  toolbox:
+    enabled: false
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1
+
+postgresql:
+  image:
+    tag: 14.6.0
+  persistence:
+    enabled: false
+
+redis:
+  persistence:
+    enabled: false

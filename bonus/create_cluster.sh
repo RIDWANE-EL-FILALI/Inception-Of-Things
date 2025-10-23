@@ -38,13 +38,12 @@ echo "🔧 Exposing ArgoCD via NodePort..."
 kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":8080,"nodePort":30002}]}}'
 
 echo "🚀 [5/8] Installing GitLab (official Helm chart)..."
-helm repo add gitlab https://charts.gitlab.io
+helm repo add gitlab https://charts.gitlab.io || true
 helm repo update
-
 helm upgrade --install gitlab gitlab/gitlab \
   --namespace gitlab \
-  --create-namespace \
-  --timeout 1800s \
+  -f gitlab-values.yaml \
+  --timeout 600s \
   --set global.hosts.domain=$DOMAIN \
   --set global.hosts.externalIP=127.0.0.1 \
   --set certmanager-issuer.email=$EMAIL \
