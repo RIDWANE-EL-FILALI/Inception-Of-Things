@@ -86,44 +86,6 @@ spec:
     release: gitlab
 EOF
 
-echo "🚀 [6/8] Deploying your app (t2o-app)..."
-cat <<EOF | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: t2o-app
-  namespace: dev
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: t2o-app
-  template:
-    metadata:
-      labels:
-        app: t2o-app
-    spec:
-      containers:
-      - name: t2o-app
-        image: broly20/flask-app-p3:v2
-        ports:
-        - containerPort: 5000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: t2o-service
-  namespace: dev
-spec:
-  selector:
-    app: t2o-app
-  type: NodePort
-  ports:
-    - port: 5000
-      targetPort: 5000
-      nodePort: 30001
-EOF
-
 echo "🚀 [7/8] Creating ArgoCD Application for auto-deploy..."
 cat <<EOF | kubectl apply -f -
 apiVersion: argoproj.io/v1alpha1
