@@ -1,12 +1,20 @@
 #!/bin/bash
+# ================================================
+# Inception-of-Things - BONUS
+# Lightweight GitLab + ArgoCD Local Setup
+# Author: rel-fila
+# ================================================
+
 set -e
 
 CLUSTER_NAME="iot-cluster"
+DOMAIN="localhost"
+EMAIL="ridwaneelfilali@gmail.com"
 
-echo "[+] Deleting old cluster if exists..."
+echo "🚀 [1/8] Cleaning up any existing cluster..."
 k3d cluster delete $CLUSTER_NAME || true
 
-echo "[+] Creating new K3d cluster..."
+echo "🚀 [2/8] Creating new k3d cluster..."
 k3d cluster create $CLUSTER_NAME \
   --api-port 6550 \
   --servers 1 \
@@ -15,65 +23,131 @@ k3d cluster create $CLUSTER_NAME \
   --port "8080:30002@loadbalancer" \
   --port "8082:30082@loadbalancer"
 
-echo "[+] Creating namespaces..."
-kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl create namespace gitlab --dry-run=client -o yaml | kubectl apply -f -
-kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+echo "🚀 [3/8] Creating namespaces..."
+for ns in argocd gitlab dev; do
+  kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
+done
 
-echo "[+] Deploying base resources..."
-kubectl apply -f deployment.yaml
-
-echo "[+] Installing Argo CD..."
+echo "🚀 [4/8] Installing ArgoCD..."
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-echo "[+] Waiting for Argo CD to be ready..."
+echo "⏳ Waiting for ArgoCD server to become ready..."
 kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd || true
 
-echo "[+] Creating Argo CD NodePort service..."
-kubectl apply -f argocd-nodeport.yaml
+echo "🔧 Exposing ArgoCD via NodePort..."
+kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort","ports":[{"port":80,"targetPort":8080,"nodePort":30002}]}}'
 
-echo "[+] Deploying Argo CD application..."
-kubectl apply -f argocd-app.yaml
-
-echo "[+] Installing GitLab Helm Chart..."
+echo "🚀 [5/8] Installing GitLab (official Helm chart)..."
 helm repo add gitlab https://charts.gitlab.io
 helm repo update
 
-# Install GitLab with proper configuration
 helm upgrade --install gitlab gitlab/gitlab \
   --namespace gitlab \
   --create-namespace \
   --timeout 1800s \
-  --set global.hosts.domain=localhost \
+  --set global.hosts.domain=$DOMAIN \
   --set global.hosts.externalIP=127.0.0.1 \
-  --set certmanager-issuer.email=ridwaneelfilali@gmail.com \
+  --set certmanager-issuer.email=$EMAIL \
   --set global.edition=ce \
   --set global.time_zone="UTC" \
   --set postgresql.image.tag=16.4.0-debian-12-r13 \
-  --set postgresql.primary.resources.requests.memory=256Mi \
-  --set postgresql.primary.resources.limits.memory=512Mi \
-  --set redis.master.resources.requests.memory=128Mi \
-  --set redis.master.resources.limits.memory=256Mi \
-  --set gitlab-runner.resources.requests.memory=256Mi \
-  --set gitlab-runner.resources.limits.memory=512Mi
+  --set global.minio.enabled=false \
+  --set global.appConfig.lfs.enabled=false \
+  --set global.appConfig.registry.enabled=false \
+  --set global.appConfig.pages.enabled=false \
+  --set global.appConfig.smtp.enabled=false \
+  --set prometheus.install=false \
+  --set gitlab-runner.install=false \
+  --set redis.master.resources.requests.memory=64Mi \
+  --set redis.master.resources.limits.memory=128Mi \
+  --set postgresql.primary.resources.requests.memory=128Mi \
+  --set postgresql.primary.resources.limits.memory=256Mi \
+  --set webservice.resources.requests.memory=512Mi \
+  --set webservice.resources.limits.memory=1Gi
 
-echo "[+] Waiting for PostgreSQL to be ready..."
-kubectl wait --for=condition=ready --timeout=600s pod/gitlab-postgresql-0 -n gitlab || {
-  echo "⚠️  PostgreSQL pod failed. Checking status..."
-  kubectl get pod gitlab-postgresql-0 -n gitlab
-  kubectl describe pod gitlab-postgresql-0 -n gitlab | tail -30
-  exit 1
-}
+echo "⏳ Waiting for GitLab core services..."
+kubectl wait --for=condition=ready pod -l app=webservice -n gitlab --timeout=900s || true
 
-echo "[+] Waiting for GitLab core services..."
-kubectl wait --for=condition=ready --timeout=900s pod -l app=gitaly -n gitlab || true
-kubectl wait --for=condition=ready --timeout=900s pod -l app=gitlab-shell -n gitlab || true
+echo "🔧 Creating GitLab NodePort service..."
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-webservice-nodeport
+  namespace: gitlab
+spec:
+  type: NodePort
+  ports:
+    - port: 8181
+      targetPort: 8181
+      nodePort: 30082
+      protocol: TCP
+  selector:
+    app: webservice
+    release: gitlab
+EOF
 
-echo "[+] Waiting for GitLab webservice (this takes 10-15 minutes)..."
-kubectl wait --for=condition=ready --timeout=900s pod -l app=webservice -n gitlab || true
+echo "🚀 [6/8] Deploying your app (t2o-app)..."
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t2o-app
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: t2o-app
+  template:
+    metadata:
+      labels:
+        app: t2o-app
+    spec:
+      containers:
+      - name: t2o-app
+        image: broly20/flask-app-p3:v1
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: t2o-service
+  namespace: dev
+spec:
+  selector:
+    app: t2o-app
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30001
+EOF
 
-echo "[+] Creating GitLab NodePort service..."
-kubectl apply -f gitlab-nodeport.yaml
+echo "🚀 [7/8] Creating ArgoCD Application for auto-deploy..."
+cat <<EOF | kubectl apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: t2o-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'http://gitlab-webservice.gitlab.svc.cluster.local:8181/root/t2o-app.git'
+    targetRevision: main
+    path: '.'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF
+
+echo "🚀 [8/8] Setup complete!"
 
 echo
 echo "======================================================="
@@ -83,12 +157,12 @@ echo "🌐 Your App:   http://localhost:8888"
 echo "🌐 Argo CD UI: http://localhost:8080"
 echo "🌐 GitLab UI:  http://localhost:8082"
 echo
-echo "ArgoCD Login:"
-echo "Username: admin"
-echo "Password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'N/A')"
+echo "🔑 ArgoCD Login:"
+echo "   Username: admin"
+echo "   Password: \$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'N/A')"
 echo
-echo "GitLab Login:"
-echo "Username: root"
-echo "Password: $(kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'Still initializing...')"
+echo "🔑 GitLab Login:"
+echo "   Username: root"
+echo "   Password: \$(kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'Still initializing...')"
 echo
 echo "======================================================="
