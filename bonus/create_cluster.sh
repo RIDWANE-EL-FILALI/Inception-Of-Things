@@ -86,7 +86,7 @@ spec:
     release: gitlab
 EOF
 
-echo "🚀 [7/8] Creating ArgoCD Application for auto-deploy..."
+echo "🚀 [6/8] Creating ArgoCD Application for auto-deploy..."
 cat <<EOF | kubectl apply -f -
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -96,7 +96,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://gitlab-webservice-default.gitlab.svc.cluster.local:8181/root/t2o-app.git'
+    repoURL: 'http://localhost:8082/root/t2o-app.git'
     targetRevision: main
     path: 'bonus'
   destination:
@@ -108,7 +108,7 @@ spec:
       selfHeal: true
 EOF
 
-echo "🚀 [8/8] Setup complete!"
+echo "🚀 [7/8] Setup complete!"
 
 echo
 echo "======================================================="
@@ -125,5 +125,9 @@ echo
 echo "🔑 GitLab Login:"
 echo "   Username: root"
 echo "   Password: \$(kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'Still initializing...')"
+echo
+echo "📝 Next steps:"
+echo "   1. Push deployment.yaml to GitLab repo: http://localhost:8082/root/t2o-app"
+echo "   2. Make sure the repo visibility is set to 'Public'"
 echo
 echo "======================================================="
