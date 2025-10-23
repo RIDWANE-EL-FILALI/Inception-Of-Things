@@ -96,7 +96,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://localhost:8082/root/t2o-app.git'
+    repoURL: 'http://gitlab-webservice-default.gitlab.svc.cluster.local:8181/root/t2o-app.git'
     targetRevision: main
     path: 'bonus'
   destination:
