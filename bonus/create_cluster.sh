@@ -123,6 +123,12 @@ EOF
 
 echo "🚀 [8/8] Setup complete!"
 
+set +e
+ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || echo 'N/A')
+GITLAB_PASS_PRINT=$(kubectl -n gitlab get secret gitlab-gitlab-initial-root-password -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || echo 'Still initializing...')
+set -e
+
+
 echo
 echo "======================================================="
 echo "✅ Cluster setup complete!"
@@ -133,11 +139,11 @@ echo "🌐 GitLab UI:  http://localhost:8082"
 echo
 echo "🔑 ArgoCD Login:"
 echo "   Username: admin"
-echo "   Password: \$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'N/A')"
+echo "   Password: ${ARGOCD_PASS}"
 echo
 echo "🔑 GitLab Login:"
 echo "   Username: root"
-echo "   Password: \$(kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -o jsonpath='{.data.password}' | base64 -d 2>/dev/null || echo 'Still initializing...')"
+echo "   Password: ${GITLAB_PASS_PRINT}"
 echo
 echo "📝 Next steps:"
 echo "   1. Push deployment.yaml to GitLab repo: http://localhost:8082/root/t2o-app"
