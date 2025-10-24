@@ -23,6 +23,9 @@ curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download
 chmod +x argocd
 sudo mv argocd /usr/local/bin/
 
+echo "[+] Installing Helm..."
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sudo bash
+
 echo "[+] Installing Git..."
 sudo apt install -y git
 
