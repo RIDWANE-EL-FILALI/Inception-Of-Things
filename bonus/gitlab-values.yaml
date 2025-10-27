@@ -8,12 +8,8 @@ global:
     configureCertmanager: false
   certmanager:
     install: false
-
-  # Completely disable object storage
   minio:
     enabled: false
-  
-  # Disable features that require object storage
   appConfig:
     lfs:
       enabled: false

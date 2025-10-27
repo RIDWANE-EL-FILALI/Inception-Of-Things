@@ -1,11 +1,9 @@
 Vagrant.configure("2") do |config|
-  # first machine is a server machine
   config.vm.boot_timeout = 900
   config.vm.define "rel-filaS" do |server|
     server.vm.box = "ubuntu/focal64"
     server.vm.hostname = "rel-filaS"
     server.vm.network "private_network", ip: "192.168.56.110"
-    # server.hostsupdater.aliases = ["app1.com", "app2.com", "app3.com"]
     server.vm.provider "virtualbox" do |vb|
       vb.name = "rel-filaS"
       vb.memory = 2048
@@ -23,16 +21,16 @@ Vagrant.configure("2") do |config|
       done
       sudo kubectl apply -f /vagrant/flask-ingress.yaml
       sleep 10
-      sudo sudo kubectl get pods -o wide -A > pods_status.txt
-      sudo kubectl get svc > /vagrant/services_status.txt
-      sudo kubectl get ingress > /vagrant/ingress_status.txt
-      sudo rm -f /vagrant/cluster_stat.yaml
-      echo "----------------------- FLASK-APP1 DEPLOYMENT -----------------------" > /vagrant/cluster_stat.yaml
-      sudo kubectl get deployment flask-app1 -o yaml >> /vagrant/cluster_stat.yaml
-      echo "----------------------- FLASK-APP2 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
-      sudo kubectl get deployment flask-app2 -o yaml >> /vagrant/cluster_stat.yaml
-      echo "----------------------- FLASK-APP3 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
-      sudo kubectl get deployment flask-app3 -o yaml >> /vagrant/cluster_stat.yaml
+      # sudo sudo kubectl get pods -o wide -A > pods_status.txt
+      # sudo kubectl get svc > /vagrant/services_status.txt
+      # sudo kubectl get ingress > /vagrant/ingress_status.txt
+      # sudo rm -f /vagrant/cluster_stat.yaml
+      # echo "----------------------- FLASK-APP1 DEPLOYMENT -----------------------" > /vagrant/cluster_stat.yaml
+      # sudo kubectl get deployment flask-app1 -o yaml >> /vagrant/cluster_stat.yaml
+      # echo "----------------------- FLASK-APP2 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
+      # sudo kubectl get deployment flask-app2 -o yaml >> /vagrant/cluster_stat.yaml
+      # echo "----------------------- FLASK-APP3 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
+      # sudo kubectl get deployment flask-app3 -o yaml >> /vagrant/cluster_stat.yaml
 
       # Delete all the deployments in case you want to just track the services and get status and clean house
       # sudo kubectl delete -f /vagrant/flask-deployment.yaml

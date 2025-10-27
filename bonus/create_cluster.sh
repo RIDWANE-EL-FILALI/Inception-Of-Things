@@ -1,10 +1,4 @@
 #!/bin/bash
-# ================================================
-# Inception-of-Things - BONUS
-# Lightweight GitLab + ArgoCD Local Setup
-# Author: rel-fila
-# ================================================
-
 set -e
 
 CLUSTER_NAME="iot-cluster"
