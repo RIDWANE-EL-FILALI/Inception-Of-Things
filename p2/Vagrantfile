@@ -32,7 +32,6 @@ Vagrant.configure("2") do |config|
       # echo "----------------------- FLASK-APP3 DEPLOYMENT -----------------------" >> /vagrant/cluster_stat.yaml
       # sudo kubectl get deployment flask-app3 -o yaml >> /vagrant/cluster_stat.yaml
 
-      # Delete all the deployments in case you want to just track the services and get status and clean house
       # sudo kubectl delete -f /vagrant/flask-deployment.yaml
       # sudo kubectl delete -f /vagrant/flask-ingress.yaml
       # sudo rm -f /vagrant/pods_status.txt
