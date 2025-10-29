@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: t2o-app
-          image: broly20/flask-app-p3:v1
+          image: broly20/flask-app-p3:v2
           ports:
             - containerPort: 5000
 ---
