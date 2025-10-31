@@ -1347,3 +1347,27 @@ sequenceDiagram
 
 This setup demonstrates a complete GitOps pipeline where infrastructure and applications are managed declaratively through Git, providing automated deployment, rollback capabilities, and full audit trails. The K3d approach makes it lightweight and perfect for development and testing scenarios.
 
+
+
+## ARGOCD chart
+```mermaid
+graph TD
+    User["👤 User (CLI / UI)"]
+    Server["🧠 ArgoCD Server<br/>(API + UI)"]
+    Dex["🔐 Dex Server<br/>(Auth & SSO)"]
+    Repo["📚 Repo Server<br/>(Fetches & Renders Git)"]
+    Controller["⚙️ Application Controller<br/>(Sync Engine)"]
+    Redis["💾 Redis<br/>(Cache / Messaging)"]
+    Git["🌐 Git Repository<br/>(Source of Truth)"]
+    K8s["☸️ Kubernetes Cluster<br/>(Actual State)"]
+
+    User -->|API / UI / CLI| Server
+    Server --> Dex
+    Server --> Repo
+    Server --> Controller
+    Controller --> Repo
+    Controller -->|Apply / Compare| K8s
+    Controller --> Redis
+    Repo --> Git
+    Server --> Redis
+```

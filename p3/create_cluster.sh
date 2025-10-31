@@ -21,7 +21,6 @@ echo "[+] Installing Argo CD..."
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 echo "[+] Waiting for Argo CD to be ready (this may take 5-10 minutes)..."
-# Increase timeout and add better error handling
 kubectl wait --for=condition=available --timeout=600s deployment/argocd-server -n argocd || {
     echo "⚠️  ArgoCD server taking longer than expected. Checking status..."
     kubectl get pods -n argocd

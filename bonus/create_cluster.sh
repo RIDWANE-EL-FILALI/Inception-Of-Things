@@ -3,7 +3,6 @@ set -e
 
 CLUSTER_NAME="iot-cluster"
 DOMAIN="localhost"
-EMAIL="ridwaneelfilali@gmail.com"
 
 echo "🚀 [1/8] Cleaning up any existing cluster..."
 k3d cluster delete $CLUSTER_NAME || true
@@ -18,9 +17,22 @@ k3d cluster create $CLUSTER_NAME \
   --port "8082:30082@loadbalancer"
 
 echo "🚀 [3/8] Creating namespaces..."
-for ns in argocd gitlab dev; do
-  kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
-done
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitlab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+EOF
 
 echo "🚀 [4/8] Installing ArgoCD..."
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
@@ -40,7 +52,6 @@ helm upgrade --install gitlab gitlab/gitlab \
   --timeout 600s \
   --set global.hosts.domain=$DOMAIN \
   --set global.hosts.externalIP=127.0.0.1 \
-  --set certmanager-issuer.email=$EMAIL \
   --set global.edition=ce \
   --set global.time_zone="UTC" \
   --set postgresql.image.tag=16.4.0-debian-12-r13 \
@@ -51,8 +62,6 @@ helm upgrade --install gitlab gitlab/gitlab \
   --set global.appConfig.smtp.enabled=false \
   --set prometheus.install=false \
   --set gitlab-runner.install=false \
-  --set redis.master.resources.requests.memory=64Mi \
-  --set redis.master.resources.limits.memory=128Mi \
   --set postgresql.primary.resources.requests.memory=128Mi \
   --set postgresql.primary.resources.limits.memory=256Mi \
   --set webservice.resources.requests.memory=512Mi \
@@ -117,10 +126,8 @@ EOF
 
 echo "🚀 [8/8] Setup complete!"
 
-set +e
 ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || echo 'N/A')
 GITLAB_PASS_PRINT=$(kubectl -n gitlab get secret gitlab-gitlab-initial-root-password -o jsonpath='{.data.password}' 2>/dev/null | base64 -d 2>/dev/null || echo 'Still initializing...')
-set -e
 
 
 echo
