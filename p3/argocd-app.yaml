@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/RIDWANE-EL-FILALI/Inception-Of-Things'
+    repoURL: 'https://github.com/RIDWANE-EL-FILALI/Inception-Of-Things-rel-fila'
     targetRevision: HEAD
     path: 'p3'
   destination:
